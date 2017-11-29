@@ -6,11 +6,11 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="statnlp-core" />
+        <module name="latent-descriptor" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="statnlp-core" target="1.8" />
+      <module name="latent-descriptor" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
