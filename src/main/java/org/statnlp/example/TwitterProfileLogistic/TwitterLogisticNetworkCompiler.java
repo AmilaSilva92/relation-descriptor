@@ -69,6 +69,7 @@ public class TwitterLogisticNetworkCompiler extends NetworkCompiler {
         long root=toRoot();
         int rootIdx= Arrays.binarySearch(unlablledNetwork.getAllNodes(), root);
         int child=unlablledNetwork.getMaxPath(rootIdx)[0];
+//        System.out.println(unlablledNetwork.getMax(rootIdx));
         int[] childArr=unlablledNetwork.getNodeArray(child);
         int prediction=childArr[1];
         inst.setPrediction(prediction);

@@ -1,9 +1,11 @@
 package org.statnlp.example.TwitterProfileLogistic;
 
+import org.apache.commons.collections15.map.HashedMap;
 import org.statnlp.commons.io.RAWF;
 import org.statnlp.commons.ml.opt.OptimizerFactory;
 import org.statnlp.commons.types.Instance;
 import org.statnlp.commons.types.WordToken;
+import org.statnlp.example.linear_ne.Entity;
 import org.statnlp.hypergraph.DiscriminativeNetworkModel;
 import org.statnlp.hypergraph.GlobalNetworkParam;
 import org.statnlp.hypergraph.NetworkConfig;
@@ -17,13 +19,35 @@ import java.util.*;
 public class TwitterLogisticMain {
     private static String trainFile="edu_train_final_clean.txt";
     private static String testFile="edu_test_final_clean.txt";
-    private static int iterCount=1000;
-    private static int trainCount=30000;
-    private static int testCount=9000;
+    private static int iterCount=100;
+    private static int trainCount=10;
+    private static int testCount=10;
+    private static Map<String, Float> nellGlobalFeatures = new HashedMap<>();
+    private static Map<String, List<String>> neighborGlobalFeatures = new HashedMap<>();
+
     public static void main(String...args) throws IOException, InterruptedException{
-        trainCount=Integer.parseInt(args[0]);
-        testCount=Integer.parseInt(args[1]);
-        boolean global=Boolean.parseBoolean(args[2]);
+        boolean global = false;
+
+        if(args.length != 0) {
+            trainCount = Integer.parseInt(args[0]);
+            testCount = Integer.parseInt(args[1]);
+            global = Boolean.parseBoolean(args[2]);
+        }
+
+        nellGlobalFeatures = readNellFeatures("output_nell.txt");
+        neighborGlobalFeatures = readNeighborFeatures("output_network.txt");
+
+
+//        for(String key:nellGlobalFeatures.keySet()){
+//            System.out.println(key);
+//            System.out.println(nellGlobalFeatures.get(key));
+//        }
+//
+//        for(String userEntity: neighborGlobalFeatures.keySet()){
+//            System.out.println(userEntity);
+//            System.out.println(neighborGlobalFeatures.get(userEntity));
+//        }
+
         TwitterInstance[] trainInsts=readData(trainFile, true, trainCount);
         TwitterInstance[] testInsts=readData(testFile,false, testCount);
 
@@ -31,12 +55,12 @@ public class TwitterLogisticMain {
 
         Set<String> userEntity=new HashSet<String>();
         for(int i=0; i<testInsts.length; i++){
-            userEntity.add(testInsts[i].input.user.split("\\$")[0]+"$"+testInsts[i].input.entity);
+            userEntity.add(testInsts[i].input.user.split("\\$")[0] + testInsts[i].input.entity);
             if(testInsts[i].output==1){
-                groundTruth.put(testInsts[i].input.user.split("\\$")[0]+"$"+testInsts[i].input.entity,1);
+                groundTruth.put(testInsts[i].input.user.split("\\$")[0] + testInsts[i].input.entity,1);
             }
             else{
-                groundTruth.put(testInsts[i].input.user.split("\\$")[0]+"$"+testInsts[i].input.entity,-1);
+                groundTruth.put(testInsts[i].input.user.split("\\$")[0] + testInsts[i].input.entity,-1);
             }
         }
         if(global){
@@ -78,6 +102,7 @@ public class TwitterLogisticMain {
         }
         return map;
     }
+
     public static TwitterInstance[] createGlobalInsts(Map<String, List<TwitterInstance>> globalMap, int count, boolean isTraining){
         List<TwitterInstance> insts=new ArrayList<TwitterInstance>();
         int instanceId=0;
@@ -130,6 +155,7 @@ public class TwitterLogisticMain {
             }
         }
     }
+
     public static TwitterInstance[] readData(String textFname, boolean isTraining, int lim) throws IOException{
         List<TwitterInstance> insts=new ArrayList<TwitterInstance>();
         BufferedReader br=RAWF.reader(textFname);
@@ -187,7 +213,19 @@ public class TwitterLogisticMain {
                 eStart=new ArrayList<Integer>();
                 eEnd=new ArrayList<Integer>();
                 findEntityString(wts,entityString, eStart, eEnd);
-                TwitterInput input = new TwitterInput(userString, wts, entityString, eStart, eEnd);
+
+                Float nell = Float.parseFloat("0");
+                if(nellGlobalFeatures.containsKey(entityString)){
+                    nell = nellGlobalFeatures.get(entityString);
+                }
+
+                List<String> neighbors = new ArrayList<>();
+                String userEntityPair = userString.split("\\$")[0]+"$"+entityString;
+                if(neighborGlobalFeatures.containsKey(userEntityPair)){
+                    neighbors = neighborGlobalFeatures.get(userEntityPair);
+                }
+                
+                TwitterInput input = new TwitterInput(userString, wts, entityString, eStart, eEnd, nell, neighbors);
                 instanceId++;
                 TwitterInstance inst=new TwitterInstance(instanceId, 1.0, input,out);
                 if(isTraining){inst.setLabeled();}
@@ -210,5 +248,35 @@ public class TwitterLogisticMain {
         System.out.println("WRONG COUNT:");
         System.out.println(wrongCount);
         return insts.toArray(new TwitterInstance[insts.size()]);
+    }
+
+    public static Map<String, Float> readNellFeatures(String pathName) throws IOException {
+        Map<String, Float> nellFeature=new HashMap<>();
+        BufferedReader br=RAWF.reader(pathName);
+        String line = null;
+
+        while((line=br.readLine())!=null) {
+            String line_split[]=line.split("\\|");
+            nellFeature.put(line_split[0], Float.parseFloat(line_split[1]));
+        }
+        return nellFeature;
+    }
+
+    public static Map<String, List<String>> readNeighborFeatures(String pathName) throws IOException {
+        Map<String, List<String> > map=new HashMap<> ();
+        BufferedReader br = RAWF.reader(pathName);
+        String line;
+        int i;
+        while((line=br.readLine())!=null) {
+            String line_split[]=line.split("\\|");
+            List<String> neighbors = new ArrayList<>();
+
+            for(i = 1; i < line_split.length; i++){
+                neighbors.add(line_split[i]);
+            }
+            map.put(line_split[0], neighbors);
+        }
+
+        return map;
     }
 }

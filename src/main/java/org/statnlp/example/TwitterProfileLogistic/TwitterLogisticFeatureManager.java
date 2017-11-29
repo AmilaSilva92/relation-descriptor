@@ -1,20 +1,23 @@
 package org.statnlp.example.TwitterProfileLogistic;
 
-import org.statnlp.example.RelationLatent.LatentNetworkCompiler;
+//import org.statnlp.example.RelationLatent.LatentNetworkCompiler;
 import org.statnlp.hypergraph.FeatureArray;
 import org.statnlp.hypergraph.FeatureManager;
 import org.statnlp.hypergraph.GlobalNetworkParam;
 import org.statnlp.hypergraph.Network;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TwitterLogisticFeatureManager extends FeatureManager {
+    float nellThreshold = (float) 0.8;
+
     public TwitterLogisticFeatureManager(GlobalNetworkParam param_g) {
         super(param_g);
     }
     private enum featureType{
-      entity, token, window, tweet;
+      entity, token, window, tweet, nell, neighbor;
     };
     @Override
     protected FeatureArray extract_helper(Network network, int parent_k, int[] children_k, int children_k_index) {
@@ -29,7 +32,9 @@ public class TwitterLogisticFeatureManager extends FeatureManager {
         String entityString=inst.getInput().entity;
         String[] entityList=entityString.split(" ");
 
-
+        String nellFeature;
+        if (inst.getInput().nell >= nellThreshold) nellFeature = "1";
+        else nellFeature = "0";
 
         List<Integer> eStart=inst.getInput().eStart;
         List<Integer> eEnd=inst.getInput().eEnd;
@@ -42,9 +47,16 @@ public class TwitterLogisticFeatureManager extends FeatureManager {
                 break;
             }
         }
+
         String entityLength=entityList.length+"";
         fs.add(_param_g.toFeature(network, featureType.entity.name()+"length",  currTag+"", entityLength));
         fs.add(_param_g.toFeature(network, featureType.entity.name()+"upperCase",  currTag+"", entityUpperCase));
+        fs.add(_param_g.toFeature(network, featureType.nell.name()+"nell",  currTag+"", nellFeature));
+
+        for(String friend: inst.getInput().neighbours){
+            fs.add(_param_g.toFeature(network, featureType.neighbor.name()+"neighbor",  currTag+"", friend));
+        }
+
         for(int j=0; j<eStart.size(); j++) {
             for (int i = eStart.get(j); i <= eEnd.get(j); i++) {
                 fs.add(_param_g.toFeature(network, featureType.token.name() + "WordIdentity", currTag + "", inst.getInput().wts.get(i).getForm()));

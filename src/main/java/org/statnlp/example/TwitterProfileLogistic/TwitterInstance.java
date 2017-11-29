@@ -40,6 +40,17 @@ public class TwitterInstance extends BaseInstance<TwitterInstance, TwitterInput,
         for(int i=0; i<this.input.eStart.size(); i++){
             System.out.printf("%d,%d\n", this.input.eStart.get(i), this.input.eEnd.get(i));
         }
+
+        System.out.println();
+        System.out.println(this.input.nell);
+        System.out.println();
+
+        for(String friend: this.input.neighbours){
+            System.out.print(friend+',');
+        }
+        System.out.println();
+
+
         System.out.println("OUTPUT:"+this.output);
         System.out.println();
         return "";

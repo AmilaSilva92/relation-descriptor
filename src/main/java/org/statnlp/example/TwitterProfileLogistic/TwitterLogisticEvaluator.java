@@ -26,9 +26,10 @@ public class TwitterLogisticEvaluator {
             for (int i = 0; i < insts.length; i++) {
                 if (insts[i].getPrediction().toString().equals("1")) {
                     TwitterInstance inst = (TwitterInstance) insts[i];
-                    predictionMap.put(inst.input.user.split("\\$")[0] + inst.input.entity, 1);
+                    predictionMap.put(inst.input.user.split("\\$")[0] +inst.input.entity, 1);
                 }
             }
+
             int tp = 0;
             int fp = 0;
             int tn = 0;
